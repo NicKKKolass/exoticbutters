@@ -1,0 +1,115 @@
+/* === Overall Page === */
+body {
+  font-family: "Arial", serif;
+  background-color: #fdfdfd;
+  color: #2c2c2c;
+}
+
+/* === Navbar (Top Header) === */
+.navbar {
+  background-color: #a60212 !important;
+  border-bottom: 4px solid #d4af37;
+}
+
+.navbar-brand {
+  color: #ffffff !important;
+  font-weight: bold;
+}
+
+.navbar-nav > li > a {
+  color: #f8f8f8 !important;
+}
+
+.navbar-nav > li > a:hover {
+  background-color: #5a0d0f !important;
+  color: #ffffff !important;
+}
+
+/* === Section Headers === */
+h1, h2, h3 {
+  color: #7b1113;
+  font-weight: 700;
+  border-bottom: 2px solid #d4af37;
+  padding-bottom: 5px;
+}
+
+/* === Cards / Boxes === */
+.section.level2 {
+  background-color: #ffffff;
+  border-left: 6px solid #7b1113;
+  padding: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* === Value Boxes (Flexdashboard) === */
+.value-box {
+  background-color: #7b1113 !important;
+  color: #ffffff !important;
+}
+
+.value-box .caption {
+  color: #f0d98a !important;
+}
+
+/* === Links === */
+a {
+  color: #7b1113;
+  font-weight: 600;
+}
+
+a:hover {
+  color: #d4af37;
+}
+
+/* === Tables === */
+.table {
+  border: 1px solid #ddd;
+}
+
+.table th {
+  background-color: #7b1113;
+  color: white;
+}
+
+/* === Optional Footer === */
+.footer {
+  background-color: #7b1113;
+  color: white;
+  text-align: center;
+  padding: 10px;
+}
+
+/* ===Active tab / section highlight=== */
+.navbar-nav > .active > a,
+.navbar-nav > .active > a:hover,
+.navbar-nav > .active > a:focus {
+  background-color: #7b1113 !important; /* BulSU maroon */
+  color: #ffffff !important;
+}
+
+/* ===Hamburger icon bars=== */
+.navbar-toggle .icon-bar {
+  background-color: #ffffff !important; /* white lines */
+}
+
+/* ===Hover + Focus=== */
+.navbar-toggle:hover,
+.navbar-toggle:focus {
+  background-color: #5a0d0f !important;
+}
+
+/* ===Mobile dropdown menu=== */
+.navbar-collapse {
+  background-color: #7b1113 !important;
+}
+
+/* ===Menu items=== */
+.navbar-collapse .nav > li > a {
+  color: #ffffff !important;
+}
+
+/* ===Hover effect=== */
+.navbar-collapse .nav > li > a:hover {
+  background-color: #5a0d0f !important;
+}

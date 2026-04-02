@@ -1,0 +1,873 @@
+---
+title: "First Employment and Job Relevance"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    self_contained: TRUE
+    theme: lumen
+    css: ILOVEBULSU.css
+---
+
+```{r setup, include = F}
+
+knitr::opts_chunk$set(warning    = F,
+                      message    = F,
+                      echo       = F)
+
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+library(DT)
+library(survival)
+library(broom)
+
+source("Analysis.R")
+
+
+
+# ---- Formats ----
+
+## Pie charts
+
+pie_plotly <- function(df, category_col) {
+  original <- levels(df[[category_col]])
+  if (is.null(original)) original <- unique(df[[category_col]])
+  
+  df[[category_col]] <- factor(df[[category_col]],
+                               levels = df[[category_col]][order(df$count,
+                                                                 decreasing = T)])
+  
+  plot_ly(
+    data         = df,
+    labels       = ~.data[[category_col]],
+    values       = ~count,
+    type         = "pie",
+    text         = ~paste0(count, "<br>",
+                           round(count / sum(count) * 100, 0),
+                           "%"),
+    textinfo     = "text",
+    textposition = "outside",
+    marker       = list(colors = c("#4682B4",
+                                   "#FF7F50",
+                                   "#2E8B57",
+                                   "#B22222",
+                                   "#9370DB",
+                                   "#7F7F7F")),
+    hoverinfo    = "text",
+    hovertext    = ~paste(.data[[category_col]], "<br>Count:", count)) |>
+    layout(showlegend = T,
+           legend = list(orientation = "v",
+                         x           = 1.05,
+                         y           = 0.5,
+                         xanchor     = "left",
+                         yanchor     = "middle"))
+}
+
+
+
+# ---- Coefficients ----
+
+## Cox
+
+coxBestAlt$estimate
+
+cox_Age    <- -0.25
+cox_Sex_F  <- -0.26
+cox_BSES   <-  0.34
+cox_BSFT   <-  0.68
+cox_BSM_AS <-  0.25
+cox_BSM_BA <-  0.47
+cox_BSM_CS <-  0.09
+cox_Year   <- -0.18
+cox_Exams  <- -0.20
+
+## AFT
+
+aftBestAlt$estimate
+
+aft_Inter  <-  1.86
+aft_Age    <-  0.35
+aft_Sex_F  <-  0.35
+aft_BSES   <- -0.48
+aft_BSFT   <- -0.90
+aft_BSM_AS <- -0.33
+aft_BSM_BA <- -0.68
+aft_BSM_CS <- -0.12
+aft_Year   <-  0.21
+aft_Exams  <-  0.27
+aft_Log    <-  0.30
+
+# RPS
+
+rpsBestAlt$term
+
+rps_Inter  <- -3.10
+rps_Age    <- -0.26
+rps_Sex_F  <- -0.26
+rps_BSES   <-  0.36
+rps_BSFT   <-  0.67
+rps_BSM_AS <-  0.24
+rps_BSM_BA <-  0.50
+rps_BSM_CS <-  0.09
+rps_Year   <- -0.16
+rps_Exams  <- -0.20
+rps_Log    <-  6.68
+
+```
+
+
+# Distribution of Graduates Across Demographic Profiles
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Age
+
+```{r}
+
+age <- ggplot(tibbleList$Age,
+              aes(x    = Age,
+                  y    = count,
+                  text = paste0(round(count / sum(count) * 100, 0),
+                                "%"))) +
+  geom_col(fill  = "#4682B4",
+           width = 1) +
+  theme_minimal()
+
+ggplotly(age)
+
+```
+
+### Sex
+
+```{r}
+
+pie_plotly(tibbleList$Sex, "Sex")
+
+```
+
+
+
+# Distribution of Graduates Across Academic Profiles
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Undergraduate Program
+    
+```{r}
+
+ugp <- ggplot(tibbleList$`Undergraduate program`,
+              aes(x    = `Undergraduate program`,
+                  y    = count,
+                  text = paste0(round(count / sum(count) * 100, 0),
+                                "%"))) +
+  geom_col(fill = "#4682B4") +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(ugp)
+
+```
+
+### Program Preference
+
+```{r}
+
+pie_plotly(tibbleList$`Program preference`, "Program preference")
+
+```
+
+### Graduation Year
+
+```{r}
+
+gy <- ggplot(tibbleList$`Graduation year`,
+              aes(x    = `Graduation year`,
+                  y    = count,
+                  text = paste0(round(count / sum(count) * 100, 0), "%"))) +
+  geom_col(fill  = "#4682B4",
+           width = 1) +
+  theme_minimal()
+
+ggplotly(gy)
+
+```
+
+### Postgraduate Education
+
+```{r}
+
+pie_plotly(tibbleList$`Postgraduate education`, "Postgraduate education")
+
+```
+
+### Professional Exams
+
+```{r}
+
+pfe <- ggplot(tibbleList$`Professional exams`,
+              aes(x    = `Professional exams`,
+                  y    = count,
+                  text = paste0(round(count / sum(count) * 100, 0), "%"))) +
+  geom_col(fill  = "#4682B4",
+           width = 1) +
+  theme_minimal()
+
+ggplotly(pfe)
+
+```
+
+
+
+# Distribution of Graduates Across Professional Profiles
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Employment Status
+
+```{r}
+
+pie_plotly(tibbleList$`Status string`, "Status string")
+
+```
+
+### Nature of Employment
+
+```{r}
+
+pie_plotly(tibbleList$`Nature of employment`, "Nature of employment")
+
+```
+
+### Employment Qualification
+
+```{r}
+
+pie_plotly(tibbleList$`Employment qualification`, "Employment qualification")
+
+```
+
+### Employment Wait time
+
+```{r}
+
+ewt <- ggplot(survey, aes(x = `Employment wait time`)) + 
+  geom_histogram(binwidth = 5,
+                 fill     = "#4682B4") +
+  theme_minimal()
+
+ggplotly(ewt)
+
+```
+
+### Sector of Employment
+
+```{r}
+
+soe <- ggplot(tibbleList$`Sector of employment`,
+              aes(x    = reorder(`Sector of employment`, -count),
+                  y    = count,
+                  text = paste0(round(count / sum(count) * 100, 0), "%"))) +
+  geom_col(fill  = "#4682B4",
+           width = 1) +
+  theme_minimal()
+
+ggplotly(soe)
+
+```
+
+
+
+# Kaplan--Meier Estimation
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Kaplan–Meier Curves Across Different Categorical Variables
+
+```{r}
+
+# ---- Variables ----
+
+names(survey) <- make.names(names(survey))
+
+kmVars <- c("Sex", "Undergraduate.program", "Postgraduate.education") 
+
+kmVars_full <- c("All", kmVars)
+
+# ---- Plotly ----
+
+curvs <- plot_ly()
+
+trace_map <- list()
+trace_count <- 0
+
+# ---- Generate curvs ----
+
+for (strat in kmVars_full) {
+  
+  if (strat == "All") {
+    
+    kmFit <- survfit(Surv(Employment.wait.time,
+                          Status) ~ 1,
+                     data = survey)
+    
+    df <- broom::tidy(kmFit)
+    df$strata <- "All"
+    
+    } else {
+      
+      kmFit <- survfit(reformulate(strat,
+                                   response = "Surv(Employment.wait.time, Status)"),
+                       data = survey)
+      
+      df <- broom::tidy(kmFit)
+      
+      if (is.null(df$strata)) {
+        
+        df$strata <- strat
+        
+        }
+      }
+  
+  strata_levels <- unique(df$strata)
+  trace_map[[strat]] <- c()
+  
+  for (s in strata_levels) {
+    
+    trace_count <- trace_count + 1
+    
+    df_sub <- df |>
+      filter(strata == s)
+    
+    curvs <- curvs |>
+      add_lines(data    = df_sub,
+                x       = ~time,
+                y       = ~estimate,
+                name    = s,
+                visible = (strat == kmVars_full[1]),
+                line    = list(shape = "hv"))
+    
+    trace_map[[strat]] <- c(trace_map[[strat]], trace_count)
+    
+    }
+  }
+
+# ---- Dropdown ----
+
+buttons <- list()
+
+for (i in seq_along(kmVars_full)) {
+  
+  strat <- kmVars_full[i]
+  
+  vis <- rep(F, trace_count)
+  vis[trace_map[[strat]]] <- T
+  
+  buttons[[i]] <- list(method = "update",
+                       args   = list(list(visible = vis)),
+                       label  = gsub("\\.", " ", strat))
+  
+  }
+
+# ---- Plots ----
+
+curvs <- curvs |>
+  layout(title       = "Kaplan-Meier Survival Curves",
+         xaxis       = list(title = "Employment Wait Time (Weeks)"),
+         yaxis       = list(title = "Probability of Unemployment"),
+         updatemenus = list(list(type    = "dropdown",
+                                 buttons = buttons,
+                                 x       = 0.1,
+                                 y       = 1.15)))
+
+curvs
+
+```
+
+### Summary Statistics Based on Kaplan–Meier Estimation
+
+```{r}
+
+datatable(kmSummaryAlt,
+          rownames = F,
+          options  = list(pageLength = 10,
+                          dom        = 'tip',
+                          ordering   = T,
+                          paging     = F),
+          class    = 'compact stripe')
+
+```
+
+
+
+# Cox Proportional Hazards Regression
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+    
+### Cox Regression Model
+    
+```{r}
+
+datatable(coxBestAlt,
+          rownames = F,
+          options  = list(pageLength = 9,
+                          dom        = 'tip',
+                          ordering   = T,
+                          paging     = F),
+          class    = 'compact stripe')
+
+```
+
+### Estimations
+
+```{r}
+
+# ---- Entries ----
+
+examples <- list("Baseline" = c(Age    = 0,
+                                Sex_F  = 0,
+                                BSES   = 0,
+                                BSFT   = 0,
+                                BSM_AS = 0,
+                                BSM_BA = 0,
+                                BSM_CS = 0,
+                                Year   = 0,
+                                Exams  = 0),
+                 
+                 "Example 1" = c(Age    = 1,
+                                 Sex_F  = 1,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 0,
+                                 BSM_BA = 1,
+                                 BSM_CS = 0,
+                                 Year   = 2,
+                                 Exams  = 1),
+                 
+                 "Example 2" = c(Age    = -1,
+                                 Sex_F  = 0,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 1,
+                                 BSM_BA = 0,
+                                 BSM_CS = 0,
+                                 Year   = 4,
+                                 Exams  = 1),
+                 
+                 "Example 3" = c(Age    = 0,
+                                 Sex_F  = 1,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 0,
+                                 BSM_BA = 0,
+                                 BSM_CS = 0,
+                                 Year   = 0,
+                                 Exams  = 0),
+                 
+                 "Example 4" = c(Age    = 1,
+                                 Sex_F  = 0,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 1,
+                                 BSM_BA = 0,
+                                 BSM_CS = 0,
+                                 Year   = 0,
+                                 Exams  = 1),
+                 
+                 "Example 5" = c(Age    = 1,
+                                 Sex_F  = 0,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 0,
+                                 BSM_BA = 0,
+                                 BSM_CS = 1,
+                                 Year   = 0,
+                                 Exams  = 1))
+
+# ---- Coefficientss ----
+
+coeffs <- c(Age    = cox_Age,
+            Sex_F  = cox_Sex_F,
+            BSES   = cox_BSES,
+            BSFT   = cox_BSFT,
+            BSM_AS = cox_BSM_AS,
+            BSM_BA = cox_BSM_BA,
+            BSM_CS = cox_BSM_CS,
+            Year   = cox_Year,
+            Exams  = cox_Exams)
+
+baseline <- examples[["Baseline"]]
+
+# ---- Computation ----
+
+hazrat <- function(x) {
+  
+  nz <- x[x != 0]
+  delta <- x - baseline
+  
+  terms <- sapply(names(x),
+                  function(nm) {
+                    
+                    val  <- x[nm]
+                    dval <- delta[nm]
+                    
+                    color <- ifelse(dval == 0, "#000000", "#FF0000")
+                    
+                    paste0("<span style='color:", color, "'>", nm, "(", val, ")</span>")
+  
+                    })
+  
+  lp <- sum(coeffs * x)
+  hr <- exp(lp)
+  
+  list(formula = paste0("h(t) = ",
+                        paste(terms,
+                              collapse = " + ")),
+       hr      = hr,
+       delta   = delta)
+  
+  }
+
+# ---- Plotly ----
+
+estims <- plot_ly()
+
+for (i in seq_along(examples)) {
+  
+  name <- names(examples)[i]
+  x    <- examples[[i]]
+  
+  res  <- hazrat(x)
+  
+  estims  <- estims |>
+    add_trace(x          = 0,
+              y          = 0,
+              type       = "scatter",
+              mode       = "text",
+              text       = paste0("<b>", name,
+                                  "</b><br><br>", res$formula, "<br><br>",
+                                  "Hazard Ratio ≈ ", round(res$hr, 2),
+                                  ", ", (1 - round(res$hr, 2)) * 100,
+                                  "% slower than the baseline"),
+              textfont   = list(family = "Arial", size = 16),
+              visible    = (i == 1),
+              showlegend = F)
+  
+  }
+
+# ---- Dropdown ----
+
+buttons <- lapply(seq_along(examples), function(i) {
+  
+  vis <- rep(F,
+             length(examples))
+  
+  vis[i] <- T
+  list(method = "update",
+       args   = list(list(visible = vis)),
+       label  = names(examples)[i])
+  
+  })
+
+# ---- Estimates ----
+
+estims <- estims |>
+  layout(title       = "Cox Regression Hazard Ratio Estimation",
+         xaxis       = list(visible = F),
+         yaxis       = list(visible = F),
+         updatemenus = list(list(type = "dropdown",
+                                 buttons = buttons,
+                                 x = 0.1,
+                                 y = 1.2)),
+         dragmode = F) |>
+  config(displayModeBar = F)
+
+estims
+
+```
+
+
+
+# Accelerated Failure Time Modeling
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+    
+### AFT Model
+    
+```{r}
+
+datatable(aftBestAlt,
+          rownames = F,
+          options  = list(pageLength = 11,
+                          dom        = 'tip',
+                          ordering   = T,
+                          paging     = F),
+          class    = 'compact stripe')
+
+```
+
+### Estimations
+
+```{r}
+
+# ---- Entries ----
+
+examples <- list("Baseline" = c(Age    = 0,
+                                Sex_F  = 0,
+                                BSES   = 0,
+                                BSFT   = 0,
+                                BSM_AS = 0,
+                                BSM_BA = 0,
+                                BSM_CS = 0,
+                                Year   = 0,
+                                Exams  = 0),
+                 
+                 "Example 1" = c(Age    = 1,
+                                 Sex_F  = 1,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 0,
+                                 BSM_BA = 1,
+                                 BSM_CS = 0,
+                                 Year   = 2,
+                                 Exams  = 1),
+                 
+                 "Example 2" = c(Age    = -1,
+                                 Sex_F  = 0,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 1,
+                                 BSM_BA = 0,
+                                 BSM_CS = 0,
+                                 Year   = 4,
+                                 Exams  = 1),
+                 
+                 "Example 3" = c(Age    = 0,
+                                 Sex_F  = 1,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 0,
+                                 BSM_BA = 0,
+                                 BSM_CS = 0,
+                                 Year   = 0,
+                                 Exams  = 0),
+                 
+                 "Example 4" = c(Age    = 1,
+                                 Sex_F  = 0,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 1,
+                                 BSM_BA = 0,
+                                 BSM_CS = 0,
+                                 Year   = 0,
+                                 Exams  = 1),
+                 
+                 "Example 5" = c(Age    = 1,
+                                 Sex_F  = 0,
+                                 BSES   = 0,
+                                 BSFT   = 0,
+                                 BSM_AS = 0,
+                                 BSM_BA = 0,
+                                 BSM_CS = 1,
+                                 Year   = 0,
+                                 Exams  = 1))
+
+# ---- Coefficientss ----
+
+coeffs <- c(Age    = aft_Age,
+            Sex_F  = aft_Sex_F,
+            BSES   = aft_BSES,
+            BSFT   = aft_BSFT,
+            BSM_AS = aft_BSM_AS,
+            BSM_BA = aft_BSM_BA,
+            BSM_CS = aft_BSM_CS,
+            Year   = aft_Year,
+            Exams  = aft_Exams)
+
+baseline <- examples[["Baseline"]]
+
+# ---- Computation ----
+
+hazrat <- function(x) {
+  
+  nz <- x[x != 0]
+  delta <- x - baseline
+  
+  terms <- sapply(names(x),
+                  function(nm) {
+                    
+                    val  <- x[nm]
+                    dval <- delta[nm]
+                    
+                    color <- ifelse(dval == 0, "#000000", "#FF0000")
+                    
+                    paste0("<span style='color:", color, "'>", nm, "(", val, ")</span>")
+  
+                    })
+  
+  lp <- aft_Inter + sum(coeffs * x)
+  tr <- exp(lp)
+  
+  list(formula = paste0("log(t) = ",
+                        "Intercept + ",
+                        paste(terms,
+                              collapse = " + ")),
+       tr      = tr,
+       delta   = delta)
+  
+  }
+
+# ---- Plotly ----
+
+estims <- plot_ly()
+
+for (i in seq_along(examples)) {
+  
+  name <- names(examples)[i]
+  x    <- examples[[i]]
+  
+  res  <- hazrat(x)
+  
+  estims  <- estims |>
+    add_trace(x          = 0,
+              y          = 0,
+              type       = "scatter",
+              mode       = "text",
+              text       = paste0("<b>", name,
+                                  "</b><br><br>", res$formula, "<br><br>",
+                                  "Time Ratio ≈ ", round(res$tr, 2),
+                                  " weeks, ", (round(res$tr, 2) - 6.42),
+                                  " week longer than the baseline"),
+              textfont   = list(family = "Arial", size = 16),
+              visible    = (i == 1),
+              showlegend = F)
+  
+  }
+
+# ---- Dropdown ----
+
+buttons <- lapply(seq_along(examples), function(i) {
+  
+  vis <- rep(F,
+             length(examples))
+  
+  vis[i] <- T
+  list(method = "update",
+       args   = list(list(visible = vis)),
+       label  = names(examples)[i])
+  
+  })
+
+# ---- Estimates ----
+
+estims <- estims |>
+  layout(title       = "AFT Time Ratio Estimation",
+         xaxis       = list(visible = F),
+         yaxis       = list(visible = F),
+         updatemenus = list(list(type = "dropdown",
+                                 buttons = buttons,
+                                 x = 0.1,
+                                 y = 1.2)),
+         dragmode = F) |>
+  config(displayModeBar = F)
+
+estims
+
+```
+
+
+
+# Royston--Parmar Splines
+
+Row {.tabset .tabset-fade}
+-------------------------------------
+    
+###  RPS Model
+    
+```{r}
+
+datatable(rpsBestAlt,
+          rownames = F,
+          options  = list(pageLength = 11,
+                          dom        = 'tip',
+                          ordering   = T,
+                          paging     = F),
+          class    = 'compact stripe')
+
+```
+
+### Estimations
+
+```{r}
+
+
+
+```
+
+
+
+<!-- # Comparison Between Three Survival Models by Fit Indices -->
+
+<!-- ```{r} -->
+
+<!-- datatable(bestAlt, -->
+<!--           rownames = F, -->
+<!--           options  = list(pageLength = 10, -->
+<!--                           dom        = 'tip', -->
+<!--                           ordering   = T, -->
+<!--                           paging     = F), -->
+<!--           class    = 'compact stripe') -->
+
+
+<!-- ``` -->
+
+
+
+<!-- # Performance Metrics of the Three Fitted Data Mining Models -->
+
+<!-- ```{r} -->
+
+<!-- convert_latex_to_html <- function(x) { -->
+<!--   gsub("\\\\textcolor\\{([^}]*)\\}\\{([^}]*)\\}", -->
+<!--        "<span style='color:\\1;'>\\2</span>", -->
+<!--        x, -->
+<!--        perl = T) -->
+<!-- } -->
+
+<!-- allCMAlt[] <- lapply(allCMAlt, -->
+<!--                      function(col) { -->
+<!--   if (is.character(col)) { -->
+<!--     convert_latex_to_html(col) -->
+<!--   } else { -->
+<!--     col -->
+<!--   } -->
+<!-- }) -->
+
+<!-- datatable(allCMAlt, -->
+<!--           rownames = F, -->
+<!--           escape   = F, -->
+<!--           options  = list(pageLength = 10, -->
+<!--                           dom        = 'tip', -->
+<!--                           ordering   = T, -->
+<!--                           paging     = F), -->
+<!--           class    = 'compact stripe') -->
+
+<!-- ``` -->
+
+
+
+<!-- # Raw Dataset -->
+
+<!-- ```{r} -->
+
+<!-- datatable(survey, -->
+<!--           options  = list(pageLength = 5), -->
+<!--           rownames = F) -->
+
+<!-- ``` -->
