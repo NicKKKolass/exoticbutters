@@ -35,9 +35,9 @@ gs4_deauth()
 
 sheets   <- read_excel("Responses.xlsx")
 prereq   <- read_excel("Prereq.xlsx")
-path     <-            "C:\\Users\\sfjma\\OneDrive\\what's up, doc\\AAAyusin mo buhay mo\\Th∗sis\\Website"
-analysis <-            "C:\\Users\\sfjma\\OneDrive\\what's up, doc\\AAAyusin mo buhay mo\\Th∗sis\\Website\\Analysis.tex"
-figures  <-            "C:\\Users\\sfjma\\OneDrive\\what's up, doc\\AAAyusin mo buhay mo\\Th∗sis\\Website\\Figures\\"
+path     <-            "C:\\Users\\Owner\\Desktop\\QR Code"
+analysis <-            "C:\\Users\\Owner\\Desktop\\QR Code\\Analysis.tex"
+figures  <-            "C:\\Users\\Owner\\Desktop\\QR Code\\Figures\\"
 
 sheets %<>%
   transmute(ID                         = 1:nrow(sheets),

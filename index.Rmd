@@ -1,5 +1,5 @@
 ---
-title: "First Employment and Job Relevance"
+title: "BulSU Graduate Employment Dashboard"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
@@ -31,37 +31,34 @@ source("Analysis.R")
 ## Pie charts
 
 pie_plotly <- function(df, category_col) {
-  original <- levels(df[[category_col]])
-  if (is.null(original)) original <- unique(df[[category_col]])
   
-  df[[category_col]] <- factor(df[[category_col]],
-                               levels = df[[category_col]][order(df$count,
-                                                                 decreasing = T)])
+  df <- df[order(df$count, decreasing = TRUE), ]
+  df[[category_col]] <- factor(df[[category_col]], levels = df[[category_col]])
   
   plot_ly(
     data         = df,
     labels       = ~.data[[category_col]],
     values       = ~count,
     type         = "pie",
-    text         = ~paste0(count, "<br>",
-                           round(count / sum(count) * 100, 0),
-                           "%"),
+    text = ~ifelse(count / sum(count) * 100 < 5, "", paste0(count, "<br>",
+                                                            round(count / sum(count) * 100, 0), "%")),
     textinfo     = "text",
-    textposition = "outside",
-    marker       = list(colors = c("#4682B4",
-                                   "#FF7F50",
-                                   "#2E8B57",
-                                   "#B22222",
-                                   "#9370DB",
-                                   "#7F7F7F")),
+    textposition = "inside",
+    direction    = "clockwise",
+    rotation     = 0,
+    marker       = list(colors = c("#4682B4", "#FF7F50", "#2E8B57",
+                                   "#B22222", "#9370DB", "#7F7F7F")),
     hoverinfo    = "text",
-    hovertext    = ~paste(.data[[category_col]], "<br>Count:", count)) |>
-    layout(showlegend = T,
-           legend = list(orientation = "v",
-                         x           = 1.05,
-                         y           = 0.5,
-                         xanchor     = "left",
-                         yanchor     = "middle"))
+    hovertext    = ~paste(.data[[category_col]], "<br>Count:", count)
+  ) |>
+    layout(
+      showlegend = TRUE,
+      legend = list(
+        orientation = "v",
+        x = 1.05, y = 0.5,
+        xanchor = "left", yanchor = "middle"
+      )
+    ) |> config(displayModeBar = FALSE)
 }
 
 
@@ -117,7 +114,7 @@ rps_Log    <-  6.68
 ```
 
 
-# Distribution of Graduates Across Demographic Profiles
+# Demographic Profiles
 
 Row {.tabset .tabset-fade}
 -------------------------------------
@@ -133,6 +130,7 @@ age <- ggplot(tibbleList$Age,
                                 "%"))) +
   geom_col(fill  = "#4682B4",
            width = 1) +
+  labs(y = "Count") + 
   theme_minimal()
 
 ggplotly(age)
@@ -149,7 +147,7 @@ pie_plotly(tibbleList$Sex, "Sex")
 
 
 
-# Distribution of Graduates Across Academic Profiles
+# Academic Profiles
 
 Row {.tabset .tabset-fade}
 -------------------------------------
@@ -165,6 +163,7 @@ ugp <- ggplot(tibbleList$`Undergraduate program`,
                                 "%"))) +
   geom_col(fill = "#4682B4") +
   coord_flip() +
+  labs(y = "Count") + 
   theme_minimal()
 
 ggplotly(ugp)
@@ -189,6 +188,7 @@ gy <- ggplot(tibbleList$`Graduation year`,
                   text = paste0(round(count / sum(count) * 100, 0), "%"))) +
   geom_col(fill  = "#4682B4",
            width = 1) +
+  labs(y = "Count") + 
   theme_minimal()
 
 ggplotly(gy)
@@ -213,6 +213,7 @@ pfe <- ggplot(tibbleList$`Professional exams`,
                   text = paste0(round(count / sum(count) * 100, 0), "%"))) +
   geom_col(fill  = "#4682B4",
            width = 1) +
+  labs(y = "Count") + 
   theme_minimal()
 
 ggplotly(pfe)
@@ -221,7 +222,7 @@ ggplotly(pfe)
 
 
 
-# Distribution of Graduates Across Professional Profiles
+# Professional Profiles
 
 Row {.tabset .tabset-fade}
 -------------------------------------
@@ -242,27 +243,6 @@ pie_plotly(tibbleList$`Nature of employment`, "Nature of employment")
 
 ```
 
-### Employment Qualification
-
-```{r}
-
-pie_plotly(tibbleList$`Employment qualification`, "Employment qualification")
-
-```
-
-### Employment Wait time
-
-```{r}
-
-ewt <- ggplot(survey, aes(x = `Employment wait time`)) + 
-  geom_histogram(binwidth = 5,
-                 fill     = "#4682B4") +
-  theme_minimal()
-
-ggplotly(ewt)
-
-```
-
 ### Sector of Employment
 
 ```{r}
@@ -273,15 +253,41 @@ soe <- ggplot(tibbleList$`Sector of employment`,
                   text = paste0(round(count / sum(count) * 100, 0), "%"))) +
   geom_col(fill  = "#4682B4",
            width = 1) +
+  labs(x = "Sector of employment",
+       y = "Count") + 
   theme_minimal()
 
 ggplotly(soe)
 
 ```
 
+### Employment Qualification
+
+```{r}
+
+pie_plotly(tibbleList$`Employment qualification`, "Employment qualification")
+
+```
+
+### Employment Wait Time
+
+```{r}
+
+ewt <- ggplot(survey, aes(x = `Employment wait time`)) + 
+  geom_histogram(binwidth = 4,
+                 fill     = "#4682B4") +
+  scale_x_continuous(limits = c(-4, 52), breaks = seq(0, 52, 4)) + 
+  labs(x = "Employment wait time (weeks)",
+       y = "Count") + 
+  theme_minimal()
+
+ggplotly(ewt)
+
+```
 
 
-# Kaplan--Meier Estimation
+
+# Survival Method 1
 
 Row {.tabset .tabset-fade}
 -------------------------------------
@@ -292,9 +298,15 @@ Row {.tabset .tabset-fade}
 
 # ---- Variables ----
 
+my_colors <- c("#4682B4", "#FF7F50", "#2E8B57",
+               "#B22222", "#9370DB", "#7F7F7F")
+
 names(survey) <- make.names(names(survey))
 
-kmVars <- c("Sex", "Undergraduate.program", "Postgraduate.education") 
+kmVars <- c("Sex",
+            "Undergraduate.program",
+            "Program.preference",
+            "Postgraduate.education") 
 
 kmVars_full <- c("All", kmVars)
 
@@ -325,6 +337,7 @@ for (strat in kmVars_full) {
                        data = survey)
       
       df <- broom::tidy(kmFit)
+      df$strata <- gsub(".*=", "", df$strata)
       
       if (is.null(df$strata)) {
         
@@ -336,9 +349,12 @@ for (strat in kmVars_full) {
   strata_levels <- unique(df$strata)
   trace_map[[strat]] <- c()
   
+  color_index <- 0
+  
   for (s in strata_levels) {
     
     trace_count <- trace_count + 1
+    color_index <- color_index + 1
     
     df_sub <- df |>
       filter(strata == s)
@@ -349,7 +365,8 @@ for (strat in kmVars_full) {
                 y       = ~estimate,
                 name    = s,
                 visible = (strat == kmVars_full[1]),
-                line    = list(shape = "hv"))
+                line    = list(shape = "hv",
+                               color = my_colors[color_index]))
     
     trace_map[[strat]] <- c(trace_map[[strat]], trace_count)
     
@@ -376,16 +393,31 @@ for (i in seq_along(kmVars_full)) {
 # ---- Plots ----
 
 curvs <- curvs |>
-  layout(title       = "Kaplan-Meier Survival Curves",
-         xaxis       = list(title = "Employment Wait Time (Weeks)"),
-         yaxis       = list(title = "Probability of Unemployment"),
+  layout(xaxis = list(title  = "Employment wait time (weeks)",
+                      range  = c(0, 54),
+                      tick0  = 0,
+                      dtick  = 6,
+                      tickmode = "linear"),
+         yaxis       = list(title = "Probability of unemployment",
+                            range = c(0, 1)),
+         legend      = list(orientation = "h",
+                            x           = 0,
+                            y           = 1.15,
+                            xanchor     = "left",
+                            yanchor     = "bottom"),
+         margin      = list(l = 50,
+                            r = 20,
+                            t = 80,
+                            b = 50),
          updatemenus = list(list(type    = "dropdown",
                                  buttons = buttons,
-                                 x       = 0.1,
-                                 y       = 1.15)))
+                                 x       = 1.0,
+                                 xanchor = "right",
+                                 y       = 1.15,
+                                 yanchor = "top")),
+         autosize    = T)
 
 curvs
-
 ```
 
 ### Summary Statistics Based on Kaplan–Meier Estimation
@@ -397,477 +429,480 @@ datatable(kmSummaryAlt,
           options  = list(pageLength = 10,
                           dom        = 'tip',
                           ordering   = T,
-                          paging     = F),
-          class    = 'compact stripe')
+                          paging     = F,
+                          scrollX    = T,
+                          autoWidth  = F,
+                          columnDefs = list(
+                            list(className = 'dt-center',
+                                 targets   = 1:(ncol(kmSummaryAlt)-1)),
+                            list(width   = '180px',
+                                 targets = "_all")
+                          )),
+          class    = 'compact stripe nowrap')
 
 ```
 
 
 
-# Cox Proportional Hazards Regression
+# Survival Method 2
 
 Row {.tabset .tabset-fade}
 -------------------------------------
     
-### Cox Regression Model
+### Cox Proportional Hazards Regression Model
     
 ```{r}
 
 datatable(coxBestAlt,
+          colnames = c("Term", "Estimate", "Hazard Ratio", "Test Statistic", "p-value"),
           rownames = F,
           options  = list(pageLength = 9,
                           dom        = 'tip',
                           ordering   = T,
-                          paging     = F),
-          class    = 'compact stripe')
+                          paging     = F,
+                          scrollX    = T,
+                          autoWidth  = F,
+                          columnDefs = list(
+                            list(className = 'dt-center',
+                                 targets   = 1:(ncol(coxBestAlt)-1)),
+                            list(width   = '180px',
+                                 targets = "_all")
+                          )),
+          class    = 'compact stripe nowrap')
+
+colnames(coxBestAlt)
 
 ```
 
 ### Estimations
-
-```{r}
-
-# ---- Entries ----
-
-examples <- list("Baseline" = c(Age    = 0,
-                                Sex_F  = 0,
-                                BSES   = 0,
-                                BSFT   = 0,
-                                BSM_AS = 0,
-                                BSM_BA = 0,
-                                BSM_CS = 0,
-                                Year   = 0,
-                                Exams  = 0),
-                 
-                 "Example 1" = c(Age    = 1,
-                                 Sex_F  = 1,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 0,
-                                 BSM_BA = 1,
-                                 BSM_CS = 0,
-                                 Year   = 2,
-                                 Exams  = 1),
-                 
-                 "Example 2" = c(Age    = -1,
-                                 Sex_F  = 0,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 1,
-                                 BSM_BA = 0,
-                                 BSM_CS = 0,
-                                 Year   = 4,
-                                 Exams  = 1),
-                 
-                 "Example 3" = c(Age    = 0,
-                                 Sex_F  = 1,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 0,
-                                 BSM_BA = 0,
-                                 BSM_CS = 0,
-                                 Year   = 0,
-                                 Exams  = 0),
-                 
-                 "Example 4" = c(Age    = 1,
-                                 Sex_F  = 0,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 1,
-                                 BSM_BA = 0,
-                                 BSM_CS = 0,
-                                 Year   = 0,
-                                 Exams  = 1),
-                 
-                 "Example 5" = c(Age    = 1,
-                                 Sex_F  = 0,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 0,
-                                 BSM_BA = 0,
-                                 BSM_CS = 1,
-                                 Year   = 0,
-                                 Exams  = 1))
-
-# ---- Coefficientss ----
-
-coeffs <- c(Age    = cox_Age,
-            Sex_F  = cox_Sex_F,
-            BSES   = cox_BSES,
-            BSFT   = cox_BSFT,
-            BSM_AS = cox_BSM_AS,
-            BSM_BA = cox_BSM_BA,
-            BSM_CS = cox_BSM_CS,
-            Year   = cox_Year,
-            Exams  = cox_Exams)
-
-baseline <- examples[["Baseline"]]
-
-# ---- Computation ----
-
-hazrat <- function(x) {
-  
-  nz <- x[x != 0]
-  delta <- x - baseline
-  
-  terms <- sapply(names(x),
-                  function(nm) {
-                    
-                    val  <- x[nm]
-                    dval <- delta[nm]
-                    
-                    color <- ifelse(dval == 0, "#000000", "#FF0000")
-                    
-                    paste0("<span style='color:", color, "'>", nm, "(", val, ")</span>")
-  
-                    })
-  
-  lp <- sum(coeffs * x)
-  hr <- exp(lp)
-  
-  list(formula = paste0("h(t) = ",
-                        paste(terms,
-                              collapse = " + ")),
-       hr      = hr,
-       delta   = delta)
-  
+````{=html}
+<div style="width: 100%; height: 100%; overflow-y: auto; box-sizing: border-box; padding: 12px;">
+  <div style="max-width: 400px;">
+    <div style="margin-bottom: 1rem;">
+      <label>Age</label><br>
+      <input type="number" id="est_age" value="22" min="15" max="27" style="width:100%;">
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <label>Sex</label><br>
+      <select id="est_sex" style="width:100%;">
+        <option value="0" selected>Male</option>
+        <option value="1">Female</option>
+      </select>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <label>Undergraduate program</label><br>
+      <select id="est_program" style="width:100%;">
+        <option value="0" selected>BSB</option>
+        <option value="1">BSES</option>
+        <option value="2">BSFT</option>
+        <option value="3">BSM AS</option>
+        <option value="4">BSM BA</option>
+        <option value="5">BSM CS</option>
+      </select>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <label>Graduation year</label><br>
+      <input type="number" id="est_year" value="2022" min="2022" max="2032" style="width:100%;">
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <label>Professional exams</label><br>
+      <input type="number" id="est_exam" value="0" min="0" max="3" style="width:100%;">
+    </div>
+    <button onclick="coxCalculate()" style="width:100%; padding: 8px;">Estimate</button>
+    <div id="est_result" style="margin-top: 1rem; font-size: 14px; line-height: 1.8; border: 1px solid #ccc; padding: 8px;"></div>
+  </div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  window.coxCalculate = function() {
+    var program = Number(document.getElementById('est_program').value); if (isNaN(program)) program = 0;
+    var year    = Number(document.getElementById('est_year').value); if (isNaN(year)) year = 2022;
+    var exam    = Number(document.getElementById('est_exam').value); if (isNaN(exam)) exam = 0;
+    var age     = Number(document.getElementById('est_age').value); if (isNaN(age)) age = 22;
+    var sex     = Number(document.getElementById('est_sex').value); if (isNaN(sex)) sex = 0;
+    var logHaz = -0.25 * (age - 22)
+               -0.26 * (sex === 1 ? 1 : 0)
+               +0.34 * (program === 1 ? 1 : 0)
+               +0.68 * (program === 2 ? 1 : 0)
+               +0.25 * (program === 3 ? 1 : 0)
+               +0.47 * (program === 4 ? 1 : 0)
+               +0.09 * (program === 5 ? 1 : 0)
+               -0.18 * (year - 2022)
+               -0.20 * exam;
+    var haz = Math.exp(logHaz);
+    var interp = "";
+    if (haz < 1) {
+      interp = "Your odds of being employed at any given time is about " + haz.toFixed(3) + " times, " +
+               "or roughly " + ((1 - haz) * 100).toFixed(1) + "% lower, " +
+               "than that of the baseline individual, a 22-year-old male BS Biology graduate " +
+               "who graduated in 2022 and did not take or pass any professional exams.";
+    } else if (haz > 1) {
+      interp = "Your odds of being employed at any given time is about " + haz.toFixed(3) + " times, " +
+               "or roughly " + ((haz - 1) * 100).toFixed(1) + "% higher, " +
+               "than that of the baseline individual, a 22-year-old male BS Biology graduate " +
+               "who graduated in 2022 and did not take or pass any professional exams.";
+    } else {
+      interp = "Your odds of being employed at any given time is about the same as " +
+               "that of the baseline individual, a 22-year-old male BS Biology graduate " +
+               "who graduated in 2022 and did not take or pass any professional exams.";
+    }
+    document.getElementById('est_result').innerHTML =
+      "<strong>Estimated hazard: " + haz.toFixed(3) + "</strong><br><br>" + interp;
   }
+});
+</script>
+````
 
-# ---- Plotly ----
-
-estims <- plot_ly()
-
-for (i in seq_along(examples)) {
-  
-  name <- names(examples)[i]
-  x    <- examples[[i]]
-  
-  res  <- hazrat(x)
-  
-  estims  <- estims |>
-    add_trace(x          = 0,
-              y          = 0,
-              type       = "scatter",
-              mode       = "text",
-              text       = paste0("<b>", name,
-                                  "</b><br><br>", res$formula, "<br><br>",
-                                  "Hazard Ratio ≈ ", round(res$hr, 2),
-                                  ", ", (1 - round(res$hr, 2)) * 100,
-                                  "% slower than the baseline"),
-              textfont   = list(family = "Arial", size = 16),
-              visible    = (i == 1),
-              showlegend = F)
-  
-  }
-
-# ---- Dropdown ----
-
-buttons <- lapply(seq_along(examples), function(i) {
-  
-  vis <- rep(F,
-             length(examples))
-  
-  vis[i] <- T
-  list(method = "update",
-       args   = list(list(visible = vis)),
-       label  = names(examples)[i])
-  
-  })
-
-# ---- Estimates ----
-
-estims <- estims |>
-  layout(title       = "Cox Regression Hazard Ratio Estimation",
-         xaxis       = list(visible = F),
-         yaxis       = list(visible = F),
-         updatemenus = list(list(type = "dropdown",
-                                 buttons = buttons,
-                                 x = 0.1,
-                                 y = 1.2)),
-         dragmode = F) |>
-  config(displayModeBar = F)
-
-estims
-
-```
-
-
-
-# Accelerated Failure Time Modeling
+# Survival Method 3
 
 Row {.tabset .tabset-fade}
 -------------------------------------
     
-### AFT Model
+### Accelerated Failure Time Model
     
 ```{r}
 
 datatable(aftBestAlt,
+          colnames = c("Term", "Estimate", "Standard Error", "Test Statistic", "p-value"),
           rownames = F,
           options  = list(pageLength = 11,
                           dom        = 'tip',
                           ordering   = T,
-                          paging     = F),
-          class    = 'compact stripe')
+                          paging     = F,
+                          scrollX    = T,
+                          autoWidth  = F,
+                          columnDefs = list(
+                            list(className = 'dt-center',
+                                 targets   = 1:(ncol(aftBestAlt)-1)),
+                            list(width   = '180px',
+                                 targets = "_all")
+                          )),
+          class    = 'compact stripe nowrap')
 
 ```
 
 ### Estimations
 
-```{r}
-
-# ---- Entries ----
-
-examples <- list("Baseline" = c(Age    = 0,
-                                Sex_F  = 0,
-                                BSES   = 0,
-                                BSFT   = 0,
-                                BSM_AS = 0,
-                                BSM_BA = 0,
-                                BSM_CS = 0,
-                                Year   = 0,
-                                Exams  = 0),
-                 
-                 "Example 1" = c(Age    = 1,
-                                 Sex_F  = 1,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 0,
-                                 BSM_BA = 1,
-                                 BSM_CS = 0,
-                                 Year   = 2,
-                                 Exams  = 1),
-                 
-                 "Example 2" = c(Age    = -1,
-                                 Sex_F  = 0,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 1,
-                                 BSM_BA = 0,
-                                 BSM_CS = 0,
-                                 Year   = 4,
-                                 Exams  = 1),
-                 
-                 "Example 3" = c(Age    = 0,
-                                 Sex_F  = 1,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 0,
-                                 BSM_BA = 0,
-                                 BSM_CS = 0,
-                                 Year   = 0,
-                                 Exams  = 0),
-                 
-                 "Example 4" = c(Age    = 1,
-                                 Sex_F  = 0,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 1,
-                                 BSM_BA = 0,
-                                 BSM_CS = 0,
-                                 Year   = 0,
-                                 Exams  = 1),
-                 
-                 "Example 5" = c(Age    = 1,
-                                 Sex_F  = 0,
-                                 BSES   = 0,
-                                 BSFT   = 0,
-                                 BSM_AS = 0,
-                                 BSM_BA = 0,
-                                 BSM_CS = 1,
-                                 Year   = 0,
-                                 Exams  = 1))
-
-# ---- Coefficientss ----
-
-coeffs <- c(Age    = aft_Age,
-            Sex_F  = aft_Sex_F,
-            BSES   = aft_BSES,
-            BSFT   = aft_BSFT,
-            BSM_AS = aft_BSM_AS,
-            BSM_BA = aft_BSM_BA,
-            BSM_CS = aft_BSM_CS,
-            Year   = aft_Year,
-            Exams  = aft_Exams)
-
-baseline <- examples[["Baseline"]]
-
-# ---- Computation ----
-
-hazrat <- function(x) {
-  
-  nz <- x[x != 0]
-  delta <- x - baseline
-  
-  terms <- sapply(names(x),
-                  function(nm) {
-                    
-                    val  <- x[nm]
-                    dval <- delta[nm]
-                    
-                    color <- ifelse(dval == 0, "#000000", "#FF0000")
-                    
-                    paste0("<span style='color:", color, "'>", nm, "(", val, ")</span>")
-  
-                    })
-  
-  lp <- aft_Inter + sum(coeffs * x)
-  tr <- exp(lp)
-  
-  list(formula = paste0("log(t) = ",
-                        "Intercept + ",
-                        paste(terms,
-                              collapse = " + ")),
-       tr      = tr,
-       delta   = delta)
-  
+```{=html}
+<div style="width: 100%; height: 100%; overflow-y: auto; box-sizing: border-box; padding: 12px;">
+  <div style="max-width: 400px;">
+    <div style="margin-bottom: 1rem;">
+      <label>Age</label><br>
+      <input type="number" id="esti_age" value="22" min="15" max="27" style="width:100%;">
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <label>Sex</label><br>
+      <select id="esti_sex" style="width:100%;">
+        <option value="0" selected>Male</option>
+        <option value="1">Female</option>
+      </select>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <label>Undergraduate program</label><br>
+      <select id="esti_program" style="width:100%;">
+        <option value="0" selected>BSB</option>
+        <option value="1">BSES</option>
+        <option value="2">BSFT</option>
+        <option value="3">BSM AS</option>
+        <option value="4">BSM BA</option>
+        <option value="5">BSM CS</option>
+      </select>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <label>Graduation year</label><br>
+      <input type="number" id="esti_year" value="2022" min="2022" max="2032" style="width:100%;">
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <label>Professional exams</label><br>
+      <input type="number" id="esti_exam" value="0" min="0" max="3" style="width:100%;">
+    </div>
+    <button onclick="aftCalculate()" style="width:100%; padding: 8px;">Estimate</button>
+    <div id="esti_result" style="margin-top: 1rem; font-size: 14px; line-height: 1.8; border: 1px solid #ccc; padding: 8px;"></div>
+  </div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  window.aftCalculate = function() {
+    var program = Number(document.getElementById('esti_program').value); if (isNaN(program)) program = 0;
+    var year    = Number(document.getElementById('esti_year').value); if (isNaN(year)) year = 2022;
+    var exam    = Number(document.getElementById('esti_exam').value); if (isNaN(exam)) exam = 0;
+    var age     = Number(document.getElementById('esti_age').value); if (isNaN(age)) age = 22;
+    var sex     = Number(document.getElementById('esti_sex').value); if (isNaN(sex)) sex = 0;
+    var logTime = 1.86
+               +0.35 * (age - 22)
+               +0.35 * (sex === 1 ? 1 : 0)
+               -0.48 * (program === 1 ? 1 : 0)
+               -0.90 * (program === 2 ? 1 : 0)
+               -0.33 * (program === 3 ? 1 : 0)
+               -0.68 * (program === 4 ? 1 : 0)
+               -0.12 * (program === 5 ? 1 : 0)
+               +0.21 * (year - 2022)
+               +0.27 * exam;
+    var time = Math.exp(logTime);
+    document.getElementById('esti_result').innerHTML =
+      "<strong>Estimated employment wait time: " + time.toFixed(2) + " weeks</strong>";
   }
-
-# ---- Plotly ----
-
-estims <- plot_ly()
-
-for (i in seq_along(examples)) {
-  
-  name <- names(examples)[i]
-  x    <- examples[[i]]
-  
-  res  <- hazrat(x)
-  
-  estims  <- estims |>
-    add_trace(x          = 0,
-              y          = 0,
-              type       = "scatter",
-              mode       = "text",
-              text       = paste0("<b>", name,
-                                  "</b><br><br>", res$formula, "<br><br>",
-                                  "Time Ratio ≈ ", round(res$tr, 2),
-                                  " weeks, ", (round(res$tr, 2) - 6.42),
-                                  " week longer than the baseline"),
-              textfont   = list(family = "Arial", size = 16),
-              visible    = (i == 1),
-              showlegend = F)
-  
-  }
-
-# ---- Dropdown ----
-
-buttons <- lapply(seq_along(examples), function(i) {
-  
-  vis <- rep(F,
-             length(examples))
-  
-  vis[i] <- T
-  list(method = "update",
-       args   = list(list(visible = vis)),
-       label  = names(examples)[i])
-  
-  })
-
-# ---- Estimates ----
-
-estims <- estims |>
-  layout(title       = "AFT Time Ratio Estimation",
-         xaxis       = list(visible = F),
-         yaxis       = list(visible = F),
-         updatemenus = list(list(type = "dropdown",
-                                 buttons = buttons,
-                                 x = 0.1,
-                                 y = 1.2)),
-         dragmode = F) |>
-  config(displayModeBar = F)
-
-estims
-
+});
+</script>
 ```
 
-
-
-# Royston--Parmar Splines
+# Survival Method 4
 
 Row {.tabset .tabset-fade}
 -------------------------------------
     
-###  RPS Model
+###  Royston--Parmar Splines Model
     
 ```{r}
 
 datatable(rpsBestAlt,
+          colnames = c("Term", "Estimate", "Standard Error", "Test Statistic", "p-value"),
           rownames = F,
           options  = list(pageLength = 11,
                           dom        = 'tip',
                           ordering   = T,
-                          paging     = F),
-          class    = 'compact stripe')
+                          paging     = F,
+                          scrollX    = T,
+                          autoWidth  = F,
+                          columnDefs = list(
+                            list(className = 'dt-center',
+                                 targets   = 1:(ncol(rpsBestAlt)-1)),
+                            list(width   = '180px',
+                                 targets = "_all")
+                          )),
+          class    = 'compact stripe nowrap')
 
 ```
 
 ### Estimations
 
-```{r}
+```{=html}
+<div style="width: 100%; height: 100%; overflow-y: auto; box-sizing: border-box; padding: 12px;">
+  <div style="max-width: 420px;">
 
+    <div style="margin-bottom: 1rem;">
+      <label>Age</label><br>
+      <input type="number" id="rps_age" value="22" min="15" max="27" style="width:100%;">
+    </div>
 
+    <div style="margin-bottom: 1rem;">
+      <label>Sex</label><br>
+      <select id="rps_sex" style="width:100%;">
+        <option value="0" selected>Male</option>
+        <option value="1">Female</option>
+      </select>
+    </div>
 
+    <div style="margin-bottom: 1rem;">
+      <label>Undergraduate program</label><br>
+      <select id="rps_program" style="width:100%;">
+        <option value="0" selected>BSB</option>
+        <option value="1">BSES</option>
+        <option value="2">BSFT</option>
+        <option value="3">BSM AS</option>
+        <option value="4">BSM BA</option>
+        <option value="5">BSM CS</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+      <label>Graduation year</label><br>
+      <input type="number" id="rps_year" value="2022" min="2022" max="2032" style="width:100%;">
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+      <label>Professional exams passed</label><br>
+      <input type="number" id="rps_exam" value="0" min="0" max="3" style="width:100%;">
+    </div>
+
+    <button onclick="rpsCalculate()" style="width:100%; padding: 8px;">Estimate</button>
+
+    <div id="rps_result" style="margin-top: 1rem; font-size: 14px; line-height: 1.8; border: 1px solid #ccc; padding: 8px; display:none;"></div>
+
+    <canvas id="rps_chart" style="margin-top: 1rem; width:100%; display:none;"></canvas>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  const TAU   = 16;
+  const BK    = [-2.302585, 4.942356];
+  const QC    = [0.2672612, 0.5345225, 0.8017837];
+  const QDOTQ = QC.reduce((s, v) => s + v * v, 0);
+
+  const COEF = {
+    intercept : -3.09995804,
+    age       : -0.25866410,
+    sexFemale : -0.26273827,
+    bses      :  0.35931880,
+    bsft      :  0.66959981,
+    bsmAs     :  0.24419759,
+    bsmBa     :  0.50471154,
+    bsmCs     :  0.08731554,
+    gradYear  : -0.15994150,
+    exams     : -0.20094185,
+    nsx       :  6.67785531
+  };
+
+  function nsxVal(logT) {
+    const u   = (logT - BK[0]) / (BK[1] - BK[0]);
+    const bs3 = [3*u*(1-u)**2, 3*u**2*(1-u), u**3];
+    return bs3.reduce((s, v, i) => s + v * QC[i], 0) / QDOTQ;
+  }
+
+  function covLP(age, sex, program, year, exams) {
+    return COEF.age       * (age - 22)
+         + COEF.sexFemale * sex
+         + COEF.bses      * (program === 1 ? 1 : 0)
+         + COEF.bsft      * (program === 2 ? 1 : 0)
+         + COEF.bsmAs     * (program === 3 ? 1 : 0)
+         + COEF.bsmBa     * (program === 4 ? 1 : 0)
+         + COEF.bsmCs     * (program === 5 ? 1 : 0)
+         + COEF.gradYear  * (year - 2022)
+         + COEF.exams     * exams;
+  }
+
+  function survival(t, lp0) {
+    const lp = COEF.intercept + lp0 + COEF.nsx * nsxVal(Math.log(t));
+    return Math.exp(-Math.exp(lp));
+  }
+
+  function rmst(lp0, steps = 1000) {
+    const dt = (16 - 0.1) / steps;
+    let area = 0;
+    for (let i = 0; i < steps; i++) {
+      const t0 = 0.1 + i * dt;
+      const t1 = 0.1 + (i + 1) * dt;
+      area += 0.5 * (survival(t0, lp0) + survival(t1, lp0)) * dt;
+    }
+    return area;
+  }
+
+  function survivalCurve(lp0, points = 200) {
+    const ts = [], ss = [];
+    for (let i = 1; i <= points; i++) {
+      const t = 0.1 + ((16 - 0.1) / points) * i;
+      ts.push(t);
+      ss.push(survival(t, lp0));
+    }
+    return { ts, ss };
+  }
+
+  function drawChart(ts, ss) {
+    const canvas = document.getElementById('rps_chart');
+    canvas.style.display = 'block';
+    canvas.width  = canvas.offsetWidth || 380;
+    canvas.height = 220;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const pad = { top: 20, right: 20, bottom: 40, left: 45 };
+    const W = canvas.width  - pad.left - pad.right;
+    const H = canvas.height - pad.top  - pad.bottom;
+
+    const xScale = t => pad.left + (t / TAU) * W;
+    const yScale = s => pad.top  + (1 - s) * H;
+
+    // RMST shaded area
+    ctx.fillStyle = 'rgba(100, 160, 220, 0.2)';
+    ctx.beginPath();
+    ctx.moveTo(xScale(0), yScale(0));
+    ts.forEach((t, i) => ctx.lineTo(xScale(t), yScale(ss[i])));
+    ctx.lineTo(xScale(TAU), yScale(0));
+    ctx.lineTo(xScale(0),   yScale(0));
+    ctx.fill();
+
+    // axes
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, pad.top);
+    ctx.lineTo(pad.left, pad.top + H);
+    ctx.lineTo(pad.left + W, pad.top + H);
+    ctx.stroke();
+
+    // y gridlines + labels
+    ctx.fillStyle = '#555';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'right';
+    [0, 0.25, 0.5, 0.75, 1].forEach(v => {
+      const y = yScale(v);
+      ctx.fillText(v.toFixed(2), pad.left - 5, y + 4);
+      ctx.strokeStyle = '#eee';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(pad.left + W, y);
+      ctx.stroke();
+    });
+
+    // x labels
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#555';
+    [0, 4, 8, 12, 16].forEach(t => {
+      ctx.fillText(t, xScale(t), pad.top + H + 16);
+    });
+
+    // axis labels
+    ctx.save();
+    ctx.translate(12, pad.top + H / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText('Survival probability', 0, 0);
+    ctx.restore();
+    ctx.textAlign = 'center';
+    ctx.fillText('Weeks since graduation', pad.left + W / 2, canvas.height - 4);
+
+    // survival curve
+    ctx.strokeStyle = '#2a6ebb';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ts.forEach((t, i) => {
+      if (i === 0) ctx.moveTo(xScale(t), yScale(ss[i]));
+      else         ctx.lineTo(xScale(t), yScale(ss[i]));
+    });
+    ctx.stroke();
+  }
+
+  window.rpsCalculate = function () {
+    var age     = Number(document.getElementById('rps_age').value);     if (isNaN(age))     age     = 22;
+    var sex     = Number(document.getElementById('rps_sex').value);     if (isNaN(sex))     sex     = 0;
+    var program = Number(document.getElementById('rps_program').value); if (isNaN(program)) program = 0;
+    var year    = Number(document.getElementById('rps_year').value);    if (isNaN(year))    year    = 2022;
+    var exam    = Number(document.getElementById('rps_exam').value);    if (isNaN(exam))    exam    = 0;
+
+    const lp0     = covLP(age, sex, program, year, exam);
+    const rmstVal = rmst(lp0);
+    const s16     = survival(16, lp0);
+    const { ts, ss } = survivalCurve(lp0);
+
+    const resultDiv = document.getElementById('rps_result');
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML =
+      "<strong>Estimated employment wait time: " + rmstVal.toFixed(2) + " weeks</strong><br><br>" +
+      "Estimated probability of not yet being employed by week 16: " + (s16 * 100).toFixed(1) + "%";
+
+    drawChart(ts, ss);
+  };
+
+});
+</script>
 ```
 
+# Decision Tree 1
 
+### Decision Tree on Job Relevance via Classification and Regression Trees (CART) Algorithm
 
-<!-- # Comparison Between Three Survival Models by Fit Indices -->
+```{r}
+knitr::include_graphics("Figures\\Relevance CART.png")
+```
 
-<!-- ```{r} -->
+# Decision Tree 2
 
-<!-- datatable(bestAlt, -->
-<!--           rownames = F, -->
-<!--           options  = list(pageLength = 10, -->
-<!--                           dom        = 'tip', -->
-<!--                           ordering   = T, -->
-<!--                           paging     = F), -->
-<!--           class    = 'compact stripe') -->
+### Decision Tree on Job Relevance via C5.0 Algorithm
 
-
-<!-- ``` -->
-
-
-
-<!-- # Performance Metrics of the Three Fitted Data Mining Models -->
-
-<!-- ```{r} -->
-
-<!-- convert_latex_to_html <- function(x) { -->
-<!--   gsub("\\\\textcolor\\{([^}]*)\\}\\{([^}]*)\\}", -->
-<!--        "<span style='color:\\1;'>\\2</span>", -->
-<!--        x, -->
-<!--        perl = T) -->
-<!-- } -->
-
-<!-- allCMAlt[] <- lapply(allCMAlt, -->
-<!--                      function(col) { -->
-<!--   if (is.character(col)) { -->
-<!--     convert_latex_to_html(col) -->
-<!--   } else { -->
-<!--     col -->
-<!--   } -->
-<!-- }) -->
-
-<!-- datatable(allCMAlt, -->
-<!--           rownames = F, -->
-<!--           escape   = F, -->
-<!--           options  = list(pageLength = 10, -->
-<!--                           dom        = 'tip', -->
-<!--                           ordering   = T, -->
-<!--                           paging     = F), -->
-<!--           class    = 'compact stripe') -->
-
-<!-- ``` -->
-
-
-
-<!-- # Raw Dataset -->
-
-<!-- ```{r} -->
-
-<!-- datatable(survey, -->
-<!--           options  = list(pageLength = 5), -->
-<!--           rownames = F) -->
-
-<!-- ``` -->
+```{r}
+knitr::include_graphics("Figures\\Relevance C5.0.png")
+```
